@@ -31,7 +31,9 @@ namespace Sitecore.SharedSource.Command.Export
 				List<Item> items = new List<Item>();
 
 				items.Add(db.Items.Database.GetItem(context.Items[0].Paths.Path)); //Self Item
-				items.AddRange(db.Items.Database.SelectItems(context.Items[0].Paths.Path + "//*")); //Get children.
+				var children = db.Items.Database.SelectItems(context.Items[0].Paths.Path + "//*");
+				if (children != null && children.Length > 0)
+					items.AddRange(children); //Get children.
 
 				foreach (Sitecore.Data.Items.Item item in items)
 				{
@@ -42,7 +44,7 @@ namespace Sitecore.SharedSource.Command.Export
 				document.SaveProject = true;
 				// Path where the zip file package will be saved
 				string filePath = Sitecore.Configuration.Settings.DataFolder + "/packages/" + context.Items[0].Name + "_" + DateTime.Now.ToString("dd_MM_yyyy_hh_mm_ss_fffffff") + ".zip";
-				
+
 				using (Sitecore.Install.Zip.PackageWriter writer = new Sitecore.Install.Zip.PackageWriter(filePath))
 				{
 					Sitecore.Context.SetActiveSite("shell");
