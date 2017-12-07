@@ -1,0 +1,40 @@
+<project>
+  <Metadata>
+    <metadata>
+      <PackageName>Export As Package</PackageName>
+      <Version>2</Version>
+      <Revision />
+      <Readme />
+      <Attributes>ModuleId=b5b0367d-b7cb-b93d-bb6d-1663ce62a5fa|ModuleName=Export As Package</Attributes>
+    </metadata>
+  </Metadata>
+  <SaveProject>True</SaveProject>
+  <Sources>
+    <xfiles>
+      <Entries>
+        <x-item>/App_Config/Include/Sitecore.SharedSource.Command.Export.config</x-item>
+        <x-item>/bin/Sitecore.SharedSource.Command.Export.dll</x-item>
+      </Entries>
+      <Name>files</Name>
+    </xfiles>
+    <xitems>
+      <Entries>
+        <x-item>/core/sitecore/content/Applications/Content Editor/Context Menues/Default/Export as Package/2b25d440-442d-4147-9db7-e3e469389c2a/invariant/0</x-item>
+      </Entries>
+      <Name>Item</Name>
+      <SkipVersions>False</SkipVersions><Converter>
+                <ItemToEntryConverter>
+                  <Transforms>
+                    <InstallerConfigurationTransform>
+                      <Options>
+                        <BehaviourOptions>
+                          <ItemMode>Merge</ItemMode>
+                          <ItemMergeMode>Clear</ItemMergeMode>
+                        </BehaviourOptions>
+                      </Options>
+                    </InstallerConfigurationTransform>
+                  </Transforms>
+                </ItemToEntryConverter>
+              </Converter></xitems>
+  </Sources>
+</project>
