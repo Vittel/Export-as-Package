@@ -1,76 +1,106 @@
-﻿using Sitecore.Data.Items;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SC = Sitecore;
+using Sitecore.Configuration;
+using Sitecore.Data;
+using Sitecore.Data.Items;
+using Sitecore.Install;
+using Sitecore.Install.Items;
+using Sitecore.Install.Zip;
+using Sitecore.Security.Accounts;
+using Sitecore.Shell.Framework.Commands;
+using Sitecore.Sites;
+using Sitecore.Web.UI.Sheer;
+
 namespace Sitecore.SharedSource.Command.Export
 {
     [Serializable]
-    public class ExportAsPackage : SC.Shell.Framework.Commands.Command
+    public class ExportAsPackage : Shell.Framework.Commands.Command
     {
-        public override void Execute(SC.Shell.Framework.Commands.CommandContext context)
+        public override void Execute(CommandContext context)
         {
             if ((context.Items == null) || (context.Items.Length != 1))
+            {
                 return;
+            }
 
-            string currentUserName = Sitecore.Context.User.Profile.FullName; //Current User Full name.
+            //Current User Full name.
+            var currentUserName = Context.User.Profile.FullName;
 
             //Admin Account
-            Sitecore.Security.Accounts.User scUser = Sitecore.Security.Accounts.User.FromName("sitecore\\admin", false);
-            using (new Sitecore.Security.Accounts.UserSwitcher(scUser))
+            var scUser = User.FromName("sitecore\\admin", false);
+
+            using (new UserSwitcher(scUser))
             {
-                Sitecore.Data.Database db = Context.ContentDatabase;
-                Sitecore.Install.PackageProject document = new Sitecore.Install.PackageProject();
+                var db = Context.ContentDatabase;
 
-                document.Metadata.PackageName = context.Items[0].Name;
-                document.Metadata.Author = currentUserName;
+                var document = new PackageProject
+                {
+                    Metadata =
+                    {
+                        PackageName = context.Items[0].Name,
+                        Author = currentUserName
+                    }
+                };
 
-                Sitecore.Install.Items.ExplicitItemSource source = new Sitecore.Install.Items.ExplicitItemSource();
-                source.Name = context.Items[0].Name;
+                var source = new ExplicitItemSource
+                {
+                    Name = context.Items[0].Name
+                };
 
+                var items = new List<Item>
+                {
+                    //Self Item
+                    db.Items.Database.GetItem(context.Items[0].Paths.Path)
+                };
 
-                List<Item> items = new List<Item>();
-
-                items.Add(db.Items.Database.GetItem(context.Items[0].Paths.Path)); //Self Item
                 //decorate item name with # otherwise query will break because of special character.
-                var paths = SC.StringUtil.Split(context.Items[0].Paths.Path, '/', true).Where(p => p != null & p != string.Empty).Select(p => "#" + p + "#").ToList();
-                string allChildQuery = string.Format("/{0}//*", SC.StringUtil.Join(paths, "/"));
+                var paths = StringUtil.Split(context.Items[0].Paths.Path, '/', true)
+                    .Where(p => p != null & p != string.Empty)
+                    .Select(p => "#" + p + "#")
+                    .ToList();
+
+                // current item and child tree
+                var allChildQuery = $"/{StringUtil.Join(paths, "/")}//*";
                 var children = db.Items.Database.SelectItems(allChildQuery);
                 if (children != null && children.Length > 0)
-                    items.AddRange(children); //Get children.
-
-                foreach (Sitecore.Data.Items.Item item in items)
                 {
-                    source.Entries.Add(new Sitecore.Install.Items.ItemReference(item.Uri, false).ToString());
+                    //Get children.
+                    items.AddRange(children);
+                }
+
+                foreach (var item in items)
+                {
+                    source.Entries.Add(new ItemReference(item.Uri, false).ToString());
                 }
 
                 document.Sources.Add(source);
                 document.SaveProject = true;
+
                 // Path where the zip file package will be saved
-                string filePath = Sitecore.Configuration.Settings.DataFolder + "/packages/" + context.Items[0].Name + "_" + DateTime.Now.ToString("dd_MM_yyyy_hh_mm_ss_fffffff") + ".zip";
+                var filePath = $"{Settings.DataFolder}/packages/{context.Items[0].Name}_{DateTime.Now:dd_MM_yyyy_hh_mm_ss_fffffff}.zip";
 
-                using (Sitecore.Install.Zip.PackageWriter writer = new Sitecore.Install.Zip.PackageWriter(filePath))
+                using (new SiteContextSwitcher(SiteContext.GetSite("shell")))
                 {
-                    Sitecore.Context.SetActiveSite("shell");
+                    using (var writer = new PackageWriter(filePath))
+                    {
+                        writer.Initialize(Installer.CreateInstallationContext());
 
-                    writer.Initialize(Sitecore.Install.Installer.CreateInstallationContext());
-
-                    Sitecore.Install.PackageGenerator.GeneratePackage(document, writer);
-
-                    Sitecore.Context.SetActiveSite("website");
+                        PackageGenerator.GeneratePackage(document, writer);
+                    }
                 }
 
-                Sitecore.Web.UI.Sheer.SheerResponse.Download(filePath);
-
+                SheerResponse.Download(filePath);
             }
         }
-        public override Shell.Framework.Commands.CommandState QueryState(Shell.Framework.Commands.CommandContext context)
+        public override CommandState QueryState(CommandContext context)
         {
             if ((context.Items == null) || (context.Items.Length != 1))
-                return Shell.Framework.Commands.CommandState.Hidden;
-            else
-                // if single item selected.
-                return base.QueryState(context);
+            {
+                return CommandState.Hidden;
+            }
+
+            return base.QueryState(context);
         }
     }
 

@@ -1,2 +1,4 @@
 SharedSource.ContextPackageGenerator/bin/
 SharedSource.ContextPackageGenerator/obj/
+packages/
+.vs/
