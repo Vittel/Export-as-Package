@@ -8,6 +8,7 @@ using Sitecore.Install;
 using Sitecore.Install.Items;
 using Sitecore.Install.Zip;
 using Sitecore.Security.Accounts;
+using Sitecore.SecurityModel;
 using Sitecore.Shell.Framework.Commands;
 using Sitecore.Sites;
 using Sitecore.Web.UI.Sheer;
@@ -27,10 +28,7 @@ namespace Sitecore.SharedSource.Command.Export
             //Current User Full name.
             var currentUserName = Context.User.Profile.FullName;
 
-            //Admin Account
-            var scUser = User.FromName("sitecore\\admin", false);
-
-            using (new UserSwitcher(scUser))
+            using (new SecurityDisabler())
             {
                 var db = Context.ContentDatabase;
 
